@@ -3,8 +3,9 @@ const dns = require("dns").promises;
 const path = require("path");
 const http = require("http");
 const https = require("https");
-const puppeteer = require("puppeteer");
 const Wappalyzer = require("./wappalyzer");
+const chromium = require('@sparticuz/chromium');
+const puppeteer = require('puppeteer-core');
 
 const { setTechnologies, setCategories, analyze, analyzeManyToMany, resolve } =
   Wappalyzer;
@@ -362,9 +363,29 @@ class Driver {
     this.destroyed = false;
   }
 
+  async ensureChromium() {
+    if (process.env.VERCEL) {
+      try {
+        // Pre-download Chromium to /tmp/chromium
+        await chromium.executablePath(
+          'https://github.com/Sparticuz/chromium/releases/download/v121.0.0/chromium-v121.0.0-pack.tar'
+        );
+        this.log('Chromium downloaded successfully');
+      } catch (error) {
+        this.log('Failed to pre-download Chromium: ' + error.message);
+      }
+    }
+  }
+
   async init() {
+
+    // Add the ensureChromium call here, before any browser launch attempts
+    if (process.env.VERCEL) {
+        await this.ensureChromium();
+    }
+
     for (let attempt = 1; attempt <= 3; attempt++) {
-      this.log(`Launching browser (attempt ${attempt})...`);
+        this.log(`Launching browser (attempt ${attempt})...`);
 
       try {
         if (CHROMIUM_WEBSOCKET) {
@@ -374,13 +395,31 @@ class Driver {
             browserWSEndpoint: CHROMIUM_WEBSOCKET,
           });
         } else {
-          this.browser = await puppeteer.launch({
-            headless: "old",
-            ignoreHTTPSErrors: true,
-            args: chromiumArgs,
-            executablePath: CHROMIUM_BIN,
-            timeout: 10000,
-          });
+            this.browser = await puppeteer.launch({
+                args: [
+                  ...chromiumArgs,
+                  ...chromium.args,
+                  '--no-sandbox',
+                  '--disable-setuid-sandbox',
+                  '--disable-gpu',
+                  '--disable-dev-shm-usage'
+                ],
+                // Unified solution for both environments
+                executablePath: process.env.VERCEL
+                  ? await chromium.executablePath(
+                      'https://github.com/Sparticuz/chromium/releases/download/v121.0.0/chromium-v121.0.0-pack.tar'
+                    ).catch(() => {
+                      // Log the error for debugging
+                      this.log('Failed to download Chromium, using local path');
+                      // Use a path that's more likely to exist in Vercel's environment
+                      return '/tmp/chromium';
+                    })
+                  : process.env.CHROME_EXECUTABLE_PATH ||
+                    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+              headless: chromium.headless,
+              ignoreHTTPSErrors: true,
+              timeout: 15000
+            });
         }
 
         break;
