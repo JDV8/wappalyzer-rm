@@ -39,6 +39,7 @@
   },
   "dependencies": {
     "@sparticuz/chromium": "^121.0.0",
+    "puppeteer": "^24.3.0",
     "puppeteer-core": "^21.11.0"
   },
   "engines": {
