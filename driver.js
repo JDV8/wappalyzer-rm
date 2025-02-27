@@ -364,9 +364,10 @@ class Driver {
   }
 
   async ensureChromium() {
-    if (process.env.VERCEL) {
+    if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
       try {
         // Pre-download Chromium to /tmp/chromium
+        this.log('Downloading Chromium...');
         await chromium.executablePath(
           'https://github.com/Sparticuz/chromium/releases/download/v121.0.0/chromium-v121.0.0-pack.tar'
         );
@@ -378,14 +379,13 @@ class Driver {
   }
 
   async init() {
-
     // Add the ensureChromium call here, before any browser launch attempts
-    if (process.env.VERCEL) {
-        await this.ensureChromium();
+    if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+      await this.ensureChromium();
     }
 
     for (let attempt = 1; attempt <= 3; attempt++) {
-        this.log(`Launching browser (attempt ${attempt})...`);
+      this.log(`Launching browser (attempt ${attempt})...`);
 
       try {
         if (CHROMIUM_WEBSOCKET) {
@@ -395,31 +395,31 @@ class Driver {
             browserWSEndpoint: CHROMIUM_WEBSOCKET,
           });
         } else {
-            this.browser = await puppeteer.launch({
-                args: [
-                  ...chromiumArgs,
-                  ...chromium.args,
-                  '--no-sandbox',
-                  '--disable-setuid-sandbox',
-                  '--disable-gpu',
-                  '--disable-dev-shm-usage'
-                ],
-                // Unified solution for both environments
-                executablePath: process.env.VERCEL
-                  ? await chromium.executablePath(
-                      'https://github.com/Sparticuz/chromium/releases/download/v121.0.0/chromium-v121.0.0-pack.tar'
-                    ).catch(() => {
-                      // Log the error for debugging
-                      this.log('Failed to download Chromium, using local path');
-                      // Use a path that's more likely to exist in Vercel's environment
-                      return '/tmp/chromium';
-                    })
-                  : process.env.CHROME_EXECUTABLE_PATH ||
-                    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-              headless: chromium.headless,
-              ignoreHTTPSErrors: true,
-              timeout: 15000
-            });
+          this.browser = await puppeteer.launch({
+            args: [
+              ...chromiumArgs,
+              ...chromium.args,
+              '--no-sandbox',
+              '--disable-setuid-sandbox',
+              '--disable-gpu',
+              '--disable-dev-shm-usage'
+            ],
+            // Enhanced solution for serverless environments
+            executablePath: process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME
+              ? await chromium.executablePath(
+                  'https://github.com/Sparticuz/chromium/releases/download/v121.0.0/chromium-v121.0.0-pack.tar'
+                ).catch(() => {
+                  // Log the error for debugging
+                  this.log('Failed to download Chromium, using local path');
+                  // Use a path that's more likely to exist in serverless environment
+                  return '/tmp/chromium';
+                })
+              : process.env.CHROME_EXECUTABLE_PATH ||
+                '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+            headless: chromium.headless,
+            ignoreHTTPSErrors: true,
+            timeout: 15000
+          });
         }
 
         break;
