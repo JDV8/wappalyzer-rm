@@ -3,9 +3,8 @@ const dns = require("dns").promises;
 const path = require("path");
 const http = require("http");
 const https = require("https");
+const puppeteer = require("puppeteer");
 const Wappalyzer = require("./wappalyzer");
-const chromium = require('@sparticuz/chromium');
-const puppeteer = require('puppeteer-core');
 
 const { setTechnologies, setCategories, analyze, analyzeManyToMany, resolve } =
   Wappalyzer;
@@ -363,27 +362,7 @@ class Driver {
     this.destroyed = false;
   }
 
-  async ensureChromium() {
-    if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
-      try {
-        // Pre-download Chromium to /tmp/chromium
-        this.log('Downloading Chromium...');
-        await chromium.executablePath(
-          'https://github.com/Sparticuz/chromium/releases/download/v121.0.0/chromium-v121.0.0-pack.tar'
-        );
-        this.log('Chromium downloaded successfully');
-      } catch (error) {
-        this.log('Failed to pre-download Chromium: ' + error.message);
-      }
-    }
-  }
-
   async init() {
-    // Add the ensureChromium call here, before any browser launch attempts
-    if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
-      await this.ensureChromium();
-    }
-
     for (let attempt = 1; attempt <= 3; attempt++) {
       this.log(`Launching browser (attempt ${attempt})...`);
 
@@ -396,29 +375,11 @@ class Driver {
           });
         } else {
           this.browser = await puppeteer.launch({
-            args: [
-              ...chromiumArgs,
-              ...chromium.args,
-              '--no-sandbox',
-              '--disable-setuid-sandbox',
-              '--disable-gpu',
-              '--disable-dev-shm-usage'
-            ],
-            // Enhanced solution for serverless environments
-            executablePath: process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME
-              ? await chromium.executablePath(
-                  'https://github.com/Sparticuz/chromium/releases/download/v121.0.0/chromium-v121.0.0-pack.tar'
-                ).catch(() => {
-                  // Log the error for debugging
-                  this.log('Failed to download Chromium, using local path');
-                  // Use a path that's more likely to exist in serverless environment
-                  return '/tmp/chromium';
-                })
-              : process.env.CHROME_EXECUTABLE_PATH ||
-                '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-            headless: chromium.headless,
+            headless: "old",
             ignoreHTTPSErrors: true,
-            timeout: 15000
+            args: chromiumArgs,
+            executablePath: CHROMIUM_BIN,
+            timeout: 10000,
           });
         }
 

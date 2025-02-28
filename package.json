@@ -18,7 +18,7 @@
   "license": "GPL-3.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/JDV8/wappalyzer-rm"
+    "url": "https://github.com/RedMapleTech/wappalyzer-rm"
   },
   "funding": [
     {
@@ -38,11 +38,7 @@
     "wappalyzer": "./cli.js"
   },
   "dependencies": {
-    "@sparticuz/chromium": "^121.0.0",
-    "cors": "^2.8.5",
-    "express": "^4.21.2",
-    "puppeteer": "^24.3.0",
-    "puppeteer-core": "^21.11.0"
+    "puppeteer": "^21.5.0"
   },
   "engines": {
     "node": ">=16"
