@@ -9,8 +9,7 @@ app.use(express.json());
 
 // CORS middleware with domain restriction
 const allowedOrigins = [
-  'https://yourdomain.com',  // Your main domain
-  'https://www.yourdomain.com' // Add any subdomains
+  'https://crft.studio',  // Your main domain
 ];
 
 // Configure CORS middleware
