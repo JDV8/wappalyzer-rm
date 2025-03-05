@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const Wappalyzer = require('./driver');
@@ -9,7 +10,8 @@ app.use(express.json());
 
 // CORS middleware with domain restriction
 const allowedOrigins = [
-  'https://crft.studio',  // Your main domain
+  'https://crft.studio',
+  'http://localhost:4321'
 ];
 
 // Configure CORS middleware
@@ -19,17 +21,18 @@ app.use(cors({
     if (!origin) return callback(null, true);
 
     if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      const msg = `The CORS policy for this site does not allow access from the specified Origin: ${origin}`;
+      console.log(msg); // Log the rejected origin for debugging
       return callback(new Error(msg), false);
     }
     return callback(null, true);
   },
-  methods: ['POST'], // Only allow POST requests
+  methods: ['GET', 'POST'], // Allow both GET and POST
   credentials: true
 }));
 
 // Add API key validation middleware
-const API_KEY = process.env.API_KEY || 'your-secret-api-key';
+const API_KEY = process.env.WAPPALYZER_API || 'your-secret-api-key';
 const validateApiKey = (req, res, next) => {
   const apiKey = req.headers['x-api-key'];
   if (!apiKey || apiKey !== API_KEY) {
