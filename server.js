@@ -5,6 +5,8 @@ const Wappalyzer = require('./driver');
 const app = express();
 const port = process.env.PORT || 3000;
 
+console.log("API KEY:", process.env.WAPPALYZER_API);
+
 // Middleware to parse JSON requests
 app.use(express.json());
 
@@ -57,7 +59,7 @@ app.post('/analyze', validateApiKey, async (req, res) => {
       debug: false,
       delay: 500,
       maxUrls: 1,
-      maxWait: 10000,
+      maxWait: 30000,
       recursive: false,
       ...options
     });
